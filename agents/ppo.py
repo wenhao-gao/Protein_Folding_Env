@@ -76,7 +76,7 @@ class PPO(object):
         self.tracker = Storage(keep=keep)
 
     def train(self):
-        max_frames = 15000
+        max_frames = 100000000
         step = 0
         num_steps = 20
         mini_batch_size = 5
@@ -96,6 +96,7 @@ class PPO(object):
 
             for _ in range(num_steps):
 
+                state.to(self.device)
                 dist, value = self.model(state)
                 action = dist.sample()
                 dist_value = self.model.get_value(action)
@@ -173,6 +174,7 @@ class PPO(object):
         for _ in range(ppo_epochs):
             for state, action, old_log_probs, return_, advantage in self.ppo_iter(mini_batch_size, states, actions,
                                                                              log_probs, returns, advantages):
+                state = [s.to(self.device) for s in state]
                 dist, value = self.model(state)
                 action1, action2 = action
                 dist_value = self.model.get_value(action1)
