@@ -7,10 +7,10 @@ from agents.ppo import PPO
 def main():
 
     args = parse_args()
-    env = Protein_Folding_Environment(ref_pdb='./data/protein_folding/1l2y.pdb')
+    env = Protein_Folding_Environment(ref_pdb='./data/protein_folding/1qgm.pdb')
     net = Net()
     agent = PPO(
-        task='test',
+        task='1qgm_mc',
         model=net,
         env=env,
         args=args,

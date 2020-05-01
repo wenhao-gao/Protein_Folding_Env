@@ -4,7 +4,7 @@ import torch.optim as optim
 import os
 import numpy as np
 from collections import OrderedDict
-
+import ipdb
 from tensorboardX import SummaryWriter
 
 
@@ -100,6 +100,7 @@ class PPO(object):
                 dist, value = self.model(state)
                 action = dist.sample()
                 dist_value = self.model.get_value(action)
+                # ipdb.set_trace()
                 action_value = dist_value.sample()
 
                 next_state, reward, done, score_before_mc, score_after_mc, rmsd = self.env.step(

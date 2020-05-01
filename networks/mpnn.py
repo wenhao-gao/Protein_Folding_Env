@@ -4,6 +4,7 @@ from torch.distributions import Normal, Categorical
 from torch.nn import Sequential, Linear, ReLU, GRU
 from torch_geometric.nn import NNConv, Set2Set
 from torch_geometric.data import Data, DataLoader, Batch
+import ipdb
 
 
 def init_weights(m):
@@ -33,8 +34,11 @@ class Net(torch.nn.Module):
 
         self.apply(init_weights)
 
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
     def forward(self, data):
         data, out, batch_size = self.encode(data)
+        data.to(self.device)
         value = self.critic(out, data.batch)
         probs = self.actor_proba(out, batch_size)
         dist = Categorical(probs)
@@ -82,11 +86,14 @@ class Net(torch.nn.Module):
 
     def get_value(self, action, std=0.01):
         data = self.embedding
+        data.to(self.device)
         batch_size = self.batch_size
         data = F.relu(self.lin5(data))
         data = torch.tanh(self.lin6(data)).view(batch_size, -1)
         mu = torch.stack([data[i][action[i]] for i in range(len(action))], dim=0).view(batch_size, )
         log_std = torch.nn.Parameter(torch.ones(1, ) * std)
         std = log_std.exp().expand_as(mu)
+        mu = mu.to(self.device)
+        std = std.to(self.device)
         dist = Normal(mu, std)
         return dist
