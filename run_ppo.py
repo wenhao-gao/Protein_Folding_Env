@@ -1,3 +1,4 @@
+import torch
 from environment.Protein_Folding import Protein_Folding_Environment
 from networks.mpnn import Net
 from utilities.parsing import parse_args
@@ -7,17 +8,21 @@ from agents.ppo import PPO
 def main():
 
     args = parse_args()
-    env = Protein_Folding_Environment(ref_pdb='./data/protein_folding/1qgm.pdb')
-    net = Net()
+
+    env = Protein_Folding_Environment(ref_pdb=args.ref_pdb)
+
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    net = Net(args, device)
+    print(f'Using Device: {device}')
+    if args.parameters is not None:
+        net.load_state_dict(torch.load(args.parameters))
+    net.to(device)
+
     agent = PPO(
-        task='1qgm_mc',
         model=net,
         env=env,
         args=args,
-        param=None,
-        keep=100,
-        model_path='./checkpoints',
-        gen_file='./result_'
+        device=device
     )
 
     agent.train()

@@ -14,10 +14,20 @@ def init_weights(m):
 
 
 class Net(torch.nn.Module):
-    def __init__(self, node_dim=40, edge_dim=23, hidden_dim=64, processing_steps=3):
+    def __init__(self, args, device):
         super(Net, self).__init__()
-        self.lin0 = torch.nn.Linear(node_dim, hidden_dim)
 
+
+        self.args = args
+        self.device = device
+
+        node_dim = self.args.node_dim
+        edge_dim = self.args.edge_dim
+        hidden_dim = self.args.hidden_dim
+        processing_steps = self.args.processing_steps
+        self.depth = self.args.depth
+
+        self.lin0 = torch.nn.Linear(node_dim, hidden_dim)
         nn = Sequential(Linear(edge_dim, hidden_dim * 2), ReLU(), Linear(hidden_dim * 2, hidden_dim * hidden_dim))
         self.conv = NNConv(hidden_dim, hidden_dim, nn, aggr='mean')
         self.gru = GRU(hidden_dim, hidden_dim)
@@ -33,8 +43,6 @@ class Net(torch.nn.Module):
         self.lin6 = torch.nn.Linear(36, 2)
 
         self.apply(init_weights)
-
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     def forward(self, data):
         data, out, batch_size = self.encode(data)
@@ -63,7 +71,7 @@ class Net(torch.nn.Module):
         out = F.relu(self.lin0(data.x))
         h = out.unsqueeze(0)
 
-        for i in range(3):
+        for i in range(self.depth):
             m = F.relu(self.conv(out, data.edge_index, data.edge_attr))
             out, h = self.gru(m.unsqueeze(0), h)
             out = out.squeeze(0)

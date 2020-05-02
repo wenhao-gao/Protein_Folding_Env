@@ -3,87 +3,27 @@ import torch.nn as nn
 import torch.optim as optim
 import os
 import numpy as np
-from collections import OrderedDict
+from agents.basic_policy import Policy
 import ipdb
 from tensorboardX import SummaryWriter
 
 
-class PPO(object):
-    def __init__(self,
-                 task,
-                 model,
-                 env,
-                 args=None,
-                 param=None,
-                 keep=100,
-                 model_path='./checkpoints',
-                 gen_file='./result_'):
-        """
-        Initialization of the agent
+class PPO(Policy):
+    def __init__(self, model, env, args=None, device='cpu'):
+        super(PPO, self).__init__(model, env, args, device)
 
-        :param task:
-        :param env:
-        :param args:
-        :param param:
-        :param keep:
-        :param model_path:
-        :param gen_file:
-        """
-        # General attribute
-        self.task = task
-        self.env = env
-        self.model = model
-        self.args = args
-        self.num_episodes = self.args.num_episodes
-        self.max_steps_per_episode = self.args.max_steps_per_episode
-        self.batch_size = self.args.batch_size
-        self.gamma = self.args.gamma
         self.ppo_epochs = 4
-
-        # Deep Network Attribute
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        if torch.cuda.is_available():
-            torch.cuda.set_device(0)
-        print(f'Using Device: {self.device}')
-        self.model.to(self.device)
-
-        # Training attribute
-        self.learning_frequency = self.args.learning_frequency
-        self.learning_rate_decay_steps = self.args.learning_rate_decay_steps
-        self.grad_clipping = self.args.grad_clipping
-
-        self.optimizer = optim.Adam(
-            params=self.model.parameters(),
-            lr=self.args.learning_rate,
-            betas=(self.args.adam_beta_1, self.args.adam_beta_2),
-            eps=1e-08,
-            weight_decay=0,
-            amsgrad=False
-        )
-
-        self.lr_schedule = optim.lr_scheduler.ExponentialLR(
-            optimizer=self.optimizer,
-            gamma=self.args.learning_rate_decay_rate
-        )
-
-        if not os.path.exists(model_path):
-            os.makedirs(model_path)
-        self.log_path = os.path.join(model_path, self.task)
-        self.writer = SummaryWriter(self.log_path)
-
-        # Logging attribute
-        self.save_frequency = self.args.save_frequency
-        self.tracker = Storage(keep=keep)
+        self.max_steps = args.max_steps
+        self.mini_batch_size = args.batch_size
+        self.clip_param = self.args.clip_param
+        self.update_frequency = self.args.update_frequency
 
     def train(self):
-        max_frames = 100000000
-        step = 0
-        num_steps = 20
-        mini_batch_size = 5
 
+        step = 0
         state = self.env.reset()
 
-        while step < max_frames:
+        while step < self.max_steps:
 
             log_probs = []
             values = []
@@ -94,7 +34,7 @@ class PPO(object):
             masks = []
             entropy = 0
 
-            for _ in range(num_steps):
+            for _ in range(self.update_frequency):
 
                 state.to(self.device)
                 dist, value = self.model(state)
@@ -121,21 +61,23 @@ class PPO(object):
                 state = next_state
                 step += 1
 
-                if step % 1 == 0:
+                # Keep track the result
+                self.tracker.insert((self.env.pose.clone(), score_after_mc, rmsd))
+
+                if step % self.args.log_frequency == 0:
+
                     print(f'frame_idx: {step}   Rosetta score: {score_after_mc}   RMSD: {rmsd}')
-
-                    # Keep track the result
-                    # if reward > self.tracker.lowest:
-                    self.tracker.insert((self.env.pose.clone(), score_after_mc, rmsd))
-
-                    # Log result
                     self.writer.add_scalar('score_before_mc', score_before_mc, step)
                     self.writer.add_scalar('score_after_mc', score_after_mc, step)
                     self.writer.add_scalar('rmsd', rmsd, step)
 
+                if step % self.args.save_frequency == 0:
+
+                    self.tracker.save(self.args.gen_path, self.task)
+
             next_state = next_state.to(self.device)
             _, next_value = self.model(next_state)
-            returns = self.compute_gae(next_value, rewards, masks, values)
+            returns = self.compute_gae(next_value, rewards, masks, values, gamma=self.gamma, tau=self.tau)
 
             returns = torch.cat(returns).detach()
             log_probs = torch.cat(log_probs).detach()
@@ -146,23 +88,14 @@ class PPO(object):
             actions = (actions1, actions2)
             advantage = returns - values
 
-            self.ppo_update(self.ppo_epochs, mini_batch_size, states, actions, log_probs, returns, advantage)
-
-    def done(self):
-        pose, score = self.env.done()
-        pose.dump_pdb("output.pdb")
-        print(f'The lowest one: {score}')
-        print(f'Native score: {self.env.native_score}')
-
-    def compute_gae(self, next_value, rewards, masks, values, gamma=0.99, tau=0.95):
-        values = values + [next_value]
-        gae = 0
-        returns = []
-        for step in reversed(range(len(rewards))):
-            delta = rewards[step] + gamma * values[step + 1] * masks[step] - values[step]
-            gae = delta + gamma * tau * masks[step] * gae
-            returns.insert(0, gae + values[step])
-        return returns
+            self.ppo_update(ppo_epochs=self.ppo_epochs,
+                            mini_batch_size=self.mini_batch_size,
+                            states=states,
+                            actions=actions,
+                            log_probs=log_probs,
+                            returns=returns,
+                            advantages=advantage,
+                            clip_param=self.clip_param)
 
     def ppo_iter(self, mini_batch_size, states, actions, log_probs, returns, advantage):
         batch_size = len(states)
@@ -194,53 +127,3 @@ class PPO(object):
                 self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()
-
-
-class Storage(object):
-    """A class to store the training result"""
-
-    def __init__(self, keep=3):
-        self._item = OrderedDict()
-        self._lowest = -999999
-        self._highest = 999999
-        self._keep = keep
-
-    def insert(self, sample):
-        """
-        Insert a new sample into the tracker.
-        :param sample: A tuple with (pose, energy, rmsd)
-        """
-        pose, energy, rmsd = sample
-        self._item[pose] = (energy, rmsd)
-        self.renormalize()
-
-    def renormalize(self):
-        """
-        Keep the order of the protein poses w.r.t reward
-        """
-        item_in_list = sorted(self._item.items(), key=lambda t: (t[1][0], t[1][1]), reverse=False)[:self._keep]
-        self._lowest = item_in_list[-1][1][0]
-        self._highest = item_in_list[0][1][0]
-        self._item = OrderedDict(item_in_list)
-        return None
-
-    @property
-    def content(self):
-        return self._item
-
-    @property
-    def highest(self):
-        return self._highest
-
-    @property
-    def lowest(self):
-        return self._lowest
-
-
-class MyDataParallel(nn.DataParallel):
-    """Class for multi-GPU training network wrapper"""
-    def __getattr__(self, item):
-        try:
-            return super().__getattr__(item)
-        except AttributeError:
-            return getattr(self.module, item)
