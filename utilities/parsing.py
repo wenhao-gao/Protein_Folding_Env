@@ -20,7 +20,7 @@ def add_args(parser: ArgumentParser):
                         help='The JSON file define the hyper parameters.')
     parser.add_argument('-m', '--model_path', default='./checkpoints',
                         help='path to put output files.')
-    parser.add_argument('-o', '--gen_path', default='./results'
+    parser.add_argument('-o', '--gen_path', default='./results',
                         help='The file to store results.')
     parser.add_argument('-n', '--number', default=100,
                         help='Number of molecules to keep')
