@@ -12,13 +12,13 @@ from environment.Protein_Environment import Protein_Modeling_Environment
 
 class Protein_Folding_Environment(Protein_Modeling_Environment):
 
-    environment_name = "Loop Folding"
+    environment_name = "Protein Folding"
 
     def __init__(self, ref_pdb=None, sequence=None, max_angle=30.0, kT=1.0, num=16, mc=True):
         super(Protein_Folding_Environment, self).__init__()
         self.kT = kT
         self.max_angle = max_angle
-        self.mc = mc
+        self.if_mc = mc
 
         if '.pdb' in ref_pdb:
             self.native_pose = pose_from_pdb(ref_pdb)
@@ -63,7 +63,7 @@ class Protein_Folding_Environment(Protein_Modeling_Environment):
 
         score_before_mc = self.scorefxn_low(self.pose)
         reward = self.reward()
-        if self.mc:
+        if self.if_mc:
             self.mc.boltzmann(self.pose)
         score_after_mc = self.scorefxn_low(self.pose)
         rmsd = CA_rmsd(self.native_pose, self.pose)

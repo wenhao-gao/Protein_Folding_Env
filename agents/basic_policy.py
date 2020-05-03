@@ -45,6 +45,9 @@ class Policy(object):
         self.log_path = os.path.join(self.args.model_path, self.task)
         self.writer = SummaryWriter(self.log_path)
 
+        if not os.path.exists(self.args.gen_path):
+            os.makedirs(self.args.gen_path)
+
         # Logging attribute
         self.save_frequency = self.args.save_frequency
         self.tracker = Storage(keep=self.args.number)
@@ -98,7 +101,7 @@ class Storage(object):
         return None
 
     def save(self, path, task):
-        item_in_list = self._item.items()
+        item_in_list = sorted(self._item.items(), key=lambda t: (t[1][0], t[1][1]), reverse=False)[:self._keep]
         for i in range(len(item_in_list)):
             filename = task + '_' + str(i) + '.pdb'
             save_name = os.path.join(path, filename)
