@@ -9,6 +9,7 @@ pyrosetta.init()
 from environment.Protein_Folding import Protein_Folding_Environment
 from networks.protein_folding_pretrain import Net_pre
 from utilities.parsing import parse_args
+import ipdb
 
 
 EPOCH = 3000
@@ -61,6 +62,7 @@ def main():
                 end = start + POSE_SIZE - 1
                 pyrosetta.rosetta.protocols.grafting.delete_region(pose, end + 1, pose_length)
                 pyrosetta.rosetta.protocols.grafting.delete_region(pose, 1, start - 1)
+                pose_length = POSE_SIZE
 
             batch += 1
             optimizer.zero_grad()
@@ -78,10 +80,13 @@ def main():
                 action_value = random.uniform(-1, 1)
                 score = 0 - env.scorefxn_low(pose)
 
-                if torsion_type == 0:
-                    pose.set_phi(res_ind, action_value * 30.0)
-                elif torsion_type == 1:
-                    pose.set_psi(res_ind, action_value * 30.0)
+                try:
+                    if torsion_type == 0:
+                        pose.set_phi(res_ind, action_value * 30.0)
+                    elif torsion_type == 1:
+                        pose.set_psi(res_ind, action_value * 30.0)
+                except:
+                    ipdb.set_trace()
 
                 datas.append(env.get_graph(pose, env.scorefxn_low))
                 t1.append([score])

@@ -23,7 +23,7 @@ if __name__ == '__main__':
     pdb_list = [file for file in pdb_list if file.endswith(".pdb") and not file.startswith(".")]
 
     for pdb in tqdm(pdb_list):
-        pdb_id = pdb.split(".")[0]
+        pdb_id = pdb[:-4]
         cleanATOM(pdb)
         if args.keep:
             pass
