@@ -69,6 +69,8 @@ class Net_pre(torch.nn.Module):
 
         batch_size = data.batch.max().item() + 1
 
+        data.to(self.device)
+        
         out = F.relu(self.lin0(data.x))
         h = out.unsqueeze(0)
 

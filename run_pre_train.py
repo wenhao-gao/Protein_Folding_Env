@@ -9,15 +9,16 @@ pyrosetta.init()
 from environment.Protein_Folding import Protein_Folding_Environment
 from networks.protein_folding_pretrain import Net_pre
 from utilities.parsing import parse_args
+import ipdb
 
 
-EPOCH = 50
-POOL_SIZE = 4
+EPOCH = 3000
+POOL_SIZE = 1
 LR = 0.001
-MINI_BATCH = 36
+MINI_BATCH = 1
 LOG_PATH = './checkpoints'
 SAVE_PATH = './model_parameters/model'
-DATA_PATH = 'data/protein_folding_pretrain_test'
+DATA_PATH = 'data/protein_folding_pretrain'
 
 
 def main():
@@ -34,9 +35,6 @@ def main():
     env = Protein_Folding_Environment(ref_pdb='./data/protein_folding/1l2y.pdb')
 
     pdb_list = [pdb for pdb in os.listdir(DATA_PATH) if '.pdb' in pdb]
-    pose_list = [pyrosetta.pose_from_pdb(os.path.join(DATA_PATH, pdb_file)) for pdb_file in pdb_list]
-    for p in pose_list:
-        env.to_centroid.apply(p)
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print(f'Using Device: {device}')
@@ -52,7 +50,10 @@ def main():
     batch = 0
 
     for epoch in range(EPOCH):
-        for pose in tqdm(random.sample(pose_list, POOL_SIZE)):
+        for pdb_file in tqdm(random.sample(pdb_list, POOL_SIZE)):
+
+            pose = pyrosetta.pose_from_pdb(os.path.join(DATA_PATH, pdb_file))
+            env.to_centroid.apply(pose)
 
             batch += 1
             optimizer.zero_grad()
@@ -85,7 +86,11 @@ def main():
             target2 = torch.LongTensor(t2)
             target3 = torch.Tensor(t3)
 
-            output1, output2, output3 = net(datas)
+            target1 = target1.to(device)
+            target2 = target2.to(device)
+            target3 = target3.to(device)
+            
+            output1, output2, output3 = net.pre_train(datas)
 
             loss1 = loss_regression1(output1, target1)
             loss2 = loss_classification(output2, target2)
@@ -101,7 +106,8 @@ def main():
             writer.add_scalar('action1 loss', loss2, batch)
             writer.add_scalar('action2 loss', loss3, batch)
 
-        torch.save(net.state_dict(), SAVE_PATH + str(epoch) + '.pth')
+        if epoch % 200 == 199:
+            torch.save(net.state_dict(), SAVE_PATH + str(epoch+1) + '.pth')
 
     torch.save(net.state_dict(), SAVE_PATH + '.pth')
 
