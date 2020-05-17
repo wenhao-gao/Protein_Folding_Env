@@ -9,13 +9,13 @@ pyrosetta.init()
 from environment.Protein_Folding import Protein_Folding_Environment
 from networks.protein_folding_pretrain import Net_pre
 from utilities.parsing import parse_args
-import ipdb
 
 
 EPOCH = 3000
 POOL_SIZE = 1
 LR = 0.001
 MINI_BATCH = 1
+POSE_SIZE = 64
 LOG_PATH = './checkpoints'
 SAVE_PATH = './model_parameters/model'
 DATA_PATH = 'data/protein_folding_pretrain'
@@ -54,10 +54,16 @@ def main():
 
             pose = pyrosetta.pose_from_pdb(os.path.join(DATA_PATH, pdb_file))
             env.to_centroid.apply(pose)
+            pose_length = len(pose.sequence())
+
+            if pose_length > POSE_SIZE:
+                start = random.randint(1, pose_length - POSE_SIZE + 1)
+                end = start + POSE_SIZE - 1
+                pyrosetta.rosetta.protocols.grafting.delete_region(pose, end + 1, pose_length)
+                pyrosetta.rosetta.protocols.grafting.delete_region(pose, 1, start - 1)
 
             batch += 1
             optimizer.zero_grad()
-            pose_length = len(pose.sequence())
 
             datas = []
             t1 = []
