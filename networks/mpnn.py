@@ -55,16 +55,18 @@ class Net(torch.nn.Module):
     def encode(self, data):
 
         if isinstance(data, Data):
-            data_list = [data]
-            loader = DataLoader(data_list, batch_size=1)
-            for data in loader:
-                break
+            try:
+                _ = data.batch
+                pass
+            except:
+                data_list = [data]
+                loader = DataLoader(data_list, batch_size=1)
+                for data in loader:
+                    break
         elif isinstance(data, list):
             loader = DataLoader(data, batch_size=len(data))
             for data in loader:
                 break
-        elif isinstance(data, Batch):
-            pass
 
         batch_size = data.batch.max().item() + 1
 
