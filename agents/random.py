@@ -1,4 +1,5 @@
 from agents.basic_policy import Policy
+import os
 
 
 class Random(Policy):
@@ -18,15 +19,7 @@ class Random(Policy):
 
         while step < self.max_steps:
 
-            state.to(self.device)
-            dist, value = self.model(state)
-            action = dist.sample()
-            dist_value = self.model.get_value(action)
-            # ipdb.set_trace()
-            action_value = dist_value.sample()
-
-            next_state, reward, done, score_before_mc, score_after_mc, rmsd = self.env.step(
-                (action.cpu().numpy(), action_value.cpu().numpy()))
+            next_state, reward, done, score_before_mc, score_after_mc, rmsd = self.env.step()
 
             state = next_state
             step += 1
@@ -42,8 +35,6 @@ class Random(Policy):
                 self.writer.add_scalar('rmsd', rmsd, step)
                 self.writer.add_scalar('lowest', self.tracker.lowest, step)
                 self.writer.add_scalar('highest', self.tracker.highest, step)
-                self.writer.add_scalar('action1', action, step)
-                self.writer.add_scalar('action2', action_value, step)
 
             if step % self.args.save_frequency == 0:
 
