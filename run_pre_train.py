@@ -12,7 +12,7 @@ from utilities.parsing import parse_args
 import ipdb
 
 
-EPOCH = 3000
+EPOCH = 1000000
 POOL_SIZE = 1
 LR = 0.001
 MINI_BATCH = 1
@@ -20,6 +20,7 @@ POSE_SIZE = 64
 LOG_PATH = './checkpoints'
 SAVE_PATH = './model_parameters/model'
 DATA_PATH = 'data/protein_folding_pretrain'
+PARAM_PATH = 'model_parameters/model1/model.pth'
 
 
 def main():
@@ -40,6 +41,10 @@ def main():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print(f'Using Device: {device}')
     net = Net_pre(args, device)
+
+    if PARAM_PATH is not None:
+        net.load_state_dict(torch.load(PARAM_PATH))
+
     net.to(device)
     net.train()
 
