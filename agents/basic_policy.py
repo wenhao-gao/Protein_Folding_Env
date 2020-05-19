@@ -57,7 +57,7 @@ class Policy(object):
 
     def done(self):
         pose, score = self.env.done()
-        pose.dump_pdb("output.pdb")
+        pose.dump_pdb(self.task + "_output.pdb")
         print(f'The lowest one: {score}')
         print(f'Native score: {self.env.native_score}')
 

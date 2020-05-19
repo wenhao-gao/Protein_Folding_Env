@@ -122,7 +122,7 @@ def main():
             writer.add_scalar('action1 loss', loss2, batch)
             writer.add_scalar('action2 loss', loss3, batch)
 
-        if epoch % 200 == 199:
+        if epoch % 2000 == 1999:
             torch.save(net.state_dict(), SAVE_PATH + str(epoch+1) + '.pth')
 
     torch.save(net.state_dict(), SAVE_PATH + '.pth')
