@@ -107,7 +107,7 @@ def main():
             loss2 = loss_classification(output2, target2)
             loss3 = loss_regression2(output3, target3)
 
-            loss = loss1 * 5 + loss2 * 0.01 + loss3
+            loss = loss1 * 0.01 + loss2 * 5 + loss3
 
             loss.backward()
             optimizer.step()

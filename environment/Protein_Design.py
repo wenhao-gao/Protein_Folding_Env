@@ -1,5 +1,5 @@
 """
-Code define the protein folding environment
+Code define the protein design environment
 """
 from pyrosetta import *
 from pyrosetta.rosetta.protocols.moves import *
@@ -10,12 +10,12 @@ from pyrosetta.rosetta.protocols.minimization_packing import *
 from environment.Protein_Environment import Protein_Modeling_Environment
 
 
-class Protein_Folding_Environment(Protein_Modeling_Environment):
+class Protein_Design_Environment(Protein_Modeling_Environment):
 
-    environment_name = "Loop Folding"
+    environment_name = "Protein Design"
 
     def __init__(self, ref_pdb=None, sequence=None, max_angle=30.0, kT=1.0, num=16):
-        super(Protein_Folding_Environment, self).__init__()
+        super(Protein_Design_Environment, self).__init__()
         self.kT = kT
         self.max_angle = max_angle
 
