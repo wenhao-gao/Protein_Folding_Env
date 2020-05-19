@@ -14,12 +14,16 @@ class Random(Policy):
 
     def train(self):
 
+        action1 = []
+        action2 = []
+        mc_keep = []
+
         step = 0
         state = self.env.reset()
 
         while step < self.max_steps:
 
-            next_state, reward, done, score_before_mc, score_after_mc, rmsd = self.env.step()
+            next_state, reward, done, score_before_mc, score_after_mc, rmsd, keep = self.env.step()
 
             state = next_state
             step += 1
@@ -39,4 +43,4 @@ class Random(Policy):
             if step % self.args.save_frequency == 0:
 
                 self.tracker.save(self.args.gen_path, self.task)
-                self.env.pose.dump_pdb(os.path.join(self.args.gen_path, self.task + '_traj_' + str(step) + '.pdb'))
+                # self.env.pose.dump_pdb(os.path.join(self.args.gen_path, self.task + '_traj_' + str(step) + '.pdb'))

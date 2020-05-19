@@ -64,12 +64,12 @@ class Protein_Folding_Environment(Protein_Modeling_Environment):
         score_before_mc = self.scorefxn_low(self.pose)
         reward = self.reward()
         if self.if_mc:
-            self.mc.boltzmann(self.pose)
+            keep = self.mc.boltzmann(self.pose)
         score_after_mc = self.scorefxn_low(self.pose)
         rmsd = CA_rmsd(self.native_pose, self.pose)
         done = 0
         next_state = self.get_graph(self.pose, self.scorefxn_low)
-        return next_state, reward, done, score_before_mc, score_after_mc, rmsd
+        return next_state, reward, done, score_before_mc, score_after_mc, rmsd, keep
 
     def reset(self):
         """Reset the whole environment. This function is for debug mode"""

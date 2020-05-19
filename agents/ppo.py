@@ -18,6 +18,7 @@ class PPO(Policy):
 
         action1 = []
         action2 = []
+        mc_keep = []
 
         step = 0
         state = self.env.reset()
@@ -45,8 +46,10 @@ class PPO(Policy):
                 action1.append(action.cpu().numpy())
                 action2.append(action_value.cpu().numpy())
 
-                next_state, reward, done, score_before_mc, score_after_mc, rmsd = self.env.step(
+                next_state, reward, done, score_before_mc, score_after_mc, rmsd, keep = self.env.step(
                     (action.cpu().numpy(), action_value.cpu().numpy()))
+
+                mc_keep.append(int(keep))
 
                 log_prob = dist.log_prob(action) + dist_value.log_prob(action_value)
                 entropy += dist.entropy().mean() + dist_value.entropy().mean()
@@ -80,7 +83,7 @@ class PPO(Policy):
                 if step % self.args.save_frequency == 0:
 
                     self.tracker.save(self.args.gen_path, self.task)
-                    self.env.pose.dump_pdb(os.path.join(self.args.gen_path, self.task + '_traj_' + str(step) + '.pdb'))
+                    # self.env.pose.dump_pdb(os.path.join(self.args.gen_path, self.task + '_traj_' + str(step) + '.pdb'))
 
             next_state = next_state.to(self.device)
             _, next_value = self.model(next_state)
@@ -106,8 +109,10 @@ class PPO(Policy):
 
         action1 = np.array(action1)
         action2 = np.array(action2)
+        mc_keep = np.array(mc_keep)
         np.save(self.task + '_action1.npy', action1)
         np.save(self.task + '_action2.npy', action2)
+        np.save(self.task + '_mc.npy', mc_keep)
 
     def ppo_iter(self, mini_batch_size, states, actions, log_probs, returns, advantage):
         batch_size = len(states)
