@@ -1,11 +1,7 @@
 import torch
-import torch.nn as nn
-import torch.optim as optim
 import os
 import numpy as np
 from agents.basic_policy import Policy
-import ipdb
-from tensorboardX import SummaryWriter
 
 
 class PPO(Policy):
@@ -76,12 +72,15 @@ class PPO(Policy):
                     self.writer.add_scalar('score_before_mc', score_before_mc, step)
                     self.writer.add_scalar('score_after_mc', score_after_mc, step)
                     self.writer.add_scalar('rmsd', rmsd, step)
+                    self.writer.add_scalar('lowest', self.tracker.lowest, step)
+                    self.writer.add_scalar('highest', self.tracker.highest, step)
                     self.writer.add_scalar('action1', action, step)
                     self.writer.add_scalar('action2', action_value, step)
 
                 if step % self.args.save_frequency == 0:
 
                     self.tracker.save(self.args.gen_path, self.task)
+                    self.env.pose.dump_pdb(os.path.join(self.args.gen_path, self.task + '_traj_' + str(step) + '.pdb'))
 
             next_state = next_state.to(self.device)
             _, next_value = self.model(next_state)
