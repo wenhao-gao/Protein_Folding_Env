@@ -98,7 +98,7 @@ class PPO(Policy):
             actions = (actions1, actions2)
             advantage = returns - values
 
-            self.ppo_update(ppo_epochs=self.ppo_epochs,
+            critic_loss, actor_loss = self.ppo_update(ppo_epochs=self.ppo_epochs,
                             mini_batch_size=self.mini_batch_size,
                             states=states,
                             actions=actions,
@@ -106,6 +106,9 @@ class PPO(Policy):
                             returns=returns,
                             advantages=advantage,
                             clip_param=self.clip_param)
+            
+            self.writer.add_scalar('actor_loss', actor_loss, step)
+            self.writer.add_scalar('critic_loss', critic_loss, step)
 
         action1 = np.array(action1)
         action2 = np.array(action2)
@@ -122,6 +125,9 @@ class PPO(Policy):
                   returns[rand_ids], advantage[rand_ids]
 
     def ppo_update(self, ppo_epochs, mini_batch_size, states, actions, log_probs, returns, advantages, clip_param=0.2):
+        critic_loss_sum = 0
+        actor_loss_sum = 0
+        
         for _ in range(ppo_epochs):
             for state, action, old_log_probs, return_, advantage in self.ppo_iter(mini_batch_size, states, actions,
                                                                              log_probs, returns, advantages):
@@ -139,8 +145,13 @@ class PPO(Policy):
                 actor_loss = - torch.min(surr1, surr2).mean()
                 critic_loss = (return_ - value).pow(2).mean()
 
+                critic_loss_sum += critic_loss
+                actor_loss_sum += actor_loss
+                
                 loss = 0.5 * critic_loss + actor_loss - 0.001 * entropy
 
                 self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()
+
+        return critic_loss_sum, actor_loss_sum
