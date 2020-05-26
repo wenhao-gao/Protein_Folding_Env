@@ -27,6 +27,8 @@ class Protein_Folding_Test_Environment(Protein_Folding_Environment):
         # reward = self.reward()
         if self.if_mc:
             keep = self.mc.boltzmann(self.pose)
+        else:
+            keep = 0
         score_after_mc = self.scorefxn_low(self.pose)
         rmsd = CA_rmsd(self.native_pose, self.pose)
         reward = 0 - rmsd
