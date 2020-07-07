@@ -1,3 +1,3 @@
-# ProtLE
+# Protein Folding ENvironment
 
-Protein modeling learning environment for deep reinforcement purpose. 
+Protein folding environment for deep reinforcement learning purpose. 
